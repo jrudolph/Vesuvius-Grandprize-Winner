@@ -343,7 +343,7 @@ if __name__ == "__main__":
                     os.makedirs(args.out_path,exist_ok=True)
                 except:
                     pass
-                cv2.imwrite(os.path.join(args.out_path, f"{fragment_id}_prediction.png"), image_cv)
+                cv2.imwrite(os.path.join(args.out_path, f"{fragment_id}_{args.start_idx}_{args.stride}.png"), image_cv)
 
     del mask_pred,test_loader,model
     torch.cuda.empty_cache()
