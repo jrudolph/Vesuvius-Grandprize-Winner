@@ -308,8 +308,8 @@ def predict_fn(test_loader, model, device, test_xyxys,pred_shape):
 import gc
 
 if __name__ == "__main__":
-    model=RegressionPLModel.load_from_checkpoint(args.model_path,strict=False,map_location=torch.device('cpu'))
-    #model.cuda()
+    model=RegressionPLModel.load_from_checkpoint(args.model_path,strict=False)
+    model.cuda()
     model.eval()
     # wandb.init(
     #     project="Vesuvius", 
