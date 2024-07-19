@@ -308,18 +308,18 @@ def predict_fn(test_loader, model, device, test_xyxys,pred_shape):
 import gc
 
 if __name__ == "__main__":
-    model=RegressionPLModel.load_from_checkpoint(args.model_path,strict=False)
-    model.cuda()
+    model=RegressionPLModel.load_from_checkpoint(args.model_path,strict=False,map_location=torch.device('cpu'))
+    #model.cuda()
     model.eval()
-    wandb.init(
-        project="Vesuvius", 
-        name=f"ALL_scrolls_tta", 
-        )
+    # wandb.init(
+    #     project="Vesuvius", 
+    #     name=f"ALL_scrolls_tta", 
+    #     )
     for fragment_id in args.segment_id:
         if os.path.exists(f"{args.segment_path}/{fragment_id}/layers/17.{args.format}"):
             preds=[]
             for r in [0]:
-                for i in [17]:
+                for i in [args.start_idx]:
                     start_f=i
                     end_f=start_f+CFG.in_chans
                     test_loader,test_xyxz,test_shape,fragment_mask=get_img_splits(fragment_id,start_f,end_f,r)
@@ -333,7 +333,7 @@ if __name__ == "__main__":
             preds[0], 
             caption=f"{fragment_id}"
             )
-            wandb.log({'predictions':img})
+            # wandb.log({'predictions':img})
             gc.collect()
 
             if len(args.out_path) > 0:
@@ -348,4 +348,4 @@ if __name__ == "__main__":
     del mask_pred,test_loader,model
     torch.cuda.empty_cache()
     gc.collect()
-    wandb.finish()
+    # wandb.finish()
