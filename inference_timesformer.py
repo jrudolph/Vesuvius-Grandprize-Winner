@@ -29,8 +29,8 @@ class InferenceArgumentParser(Tap):
     segment_id: list[str] =['20230925002745']
     segment_path:str='./eval_scrolls'
     model_path:str= 'outputs/vesuvius/pretraining_all/vesuvius-models/valid_20230827161847_0_fr_i3depoch=7.ckpt'
-    out_path:str=""
-    stride: int = 2
+    out_path:str="./"
+    stride: int = 20
     start_idx:int=15
     workers: int = 4
     batch_size: int = 512
@@ -53,7 +53,7 @@ class CFG:
     # comp_dir_path = './'
     comp_dir_path = './'
     comp_folder_name = './'
-    comp_dataset_path = f'./'
+    comp_dataset_path = './'
     
     exp_name = 'pretraining_all'
     # ============== model cfg =============
@@ -62,7 +62,7 @@ class CFG:
     # ============== training cfg =============
     size = 64
     tile_size = 64
-    stride = tile_size // 3
+    stride = args.stride
 
     train_batch_size = 256 # 32
     valid_batch_size = 256
@@ -118,14 +118,14 @@ def read_image_mask(fragment_id,start_idx=18,end_idx=38,rotation=0):
         image=np.clip(image,0,200)
         images.append(image)
     images = np.stack(images, axis=2)
-    if args.reverse != 0 or fragment_id in ['20230701020044','verso','20230901184804','20230901234823','20230531193658','20231007101615','20231005123333','20231011144857','20230522215721', '20230919113918', '20230625171244','20231022170900','20231012173610','20231016151000']:
-        print("Reverse Segment")
-        images=images[:,:,::-1]
+    # if args.reverse != 0 or fragment_id in ['20230701020044','verso','20230901184804','20230901234823','20230531193658','20231007101615','20231005123333','20231011144857','20230522215721', '20230919113918', '20230625171244','20231022170900','20231012173610','20231016151000']:
+    #     print("Reverse Segment")
+    #     images=images[:,:,::-1]
 
     fragment_mask=None
     wildcard_path_mask = f'{args.segment_path}/{fragment_id}/*_mask.png'
     if os.path.exists(f'{args.segment_path}/{fragment_id}/{fragment_id}_mask.png'):
-        fragment_mask=cv2.imread(CFG.comp_dataset_path + f"{args.segment_path}/{fragment_id}/{fragment_id}_mask.png", 0)
+        fragment_mask=cv2.imread(f"{args.segment_path}/{fragment_id}/{fragment_id}_mask.png", 0)
         fragment_mask = np.pad(fragment_mask, [(0, pad0), (0, pad1)], constant_values=0)
     elif len(glob.glob(wildcard_path_mask)) > 0:
         # any *mask.png exists
@@ -316,7 +316,7 @@ if __name__ == "__main__":
         name=f"ALL_scrolls_tta", 
         )
     for fragment_id in args.segment_id:
-        if os.path.exists(f"{args.segment_path}/{fragment_id}/layers/00.{args.format}"):
+        if os.path.exists(f"{args.segment_path}/{fragment_id}/layers/17.{args.format}"):
             preds=[]
             for r in [0]:
                 for i in [17]:
