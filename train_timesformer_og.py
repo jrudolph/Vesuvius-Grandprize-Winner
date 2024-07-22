@@ -47,7 +47,7 @@ class CFG:
     size = 64
     tile_size = 256
     stride = tile_size // 8
-    train_batch_size = 196 # 32
+    train_batch_size = 150 # 32
     valid_batch_size = train_batch_size
 
     scheduler = 'GradualWarmupSchedulerV2'
@@ -129,7 +129,7 @@ def read_image_mask(fragment_id,start_idx=17,end_idx=43):
     idxs = range(start_idx, end_idx)
 
     for i in idxs:
-        image = cv2.imread(CFG.comp_dataset_path + f"train_scrolls/{fragment_id}/layers/{i:02}.tif", 0)
+        image = cv2.imread(CFG.comp_dataset_path + f"train_scrolls/{fragment_id}/layers/{i:02}.png", 0)
         pad0 = (CFG.tile_size - image.shape[0] % CFG.tile_size)
         pad1 = (CFG.tile_size - image.shape[1] % CFG.tile_size)
         image = np.pad(image, [(0, pad0), (0, pad1)], constant_values=0)        
@@ -156,7 +156,7 @@ def get_train_valid_dataset():
     valid_masks = []
     valid_xyxys = []
   
-    for fragment_id in ['20231210121321','20231022170901','20231106155351','20231005123336','20230820203112','20230826170124','20230702185753','20230522215721','20230531193658','20230903193206','20230902141231','20231007101615','20230929220926','recto','20231016151000','20231012184423','20231031143850']:  
+    for fragment_id in ['Frag1', 'Frag3']:  
         print('reading ',fragment_id)
         image, mask,fragment_mask = read_image_mask(fragment_id)
         x1_list = list(range(0, image.shape[1]-CFG.tile_size+1, CFG.stride))
@@ -367,7 +367,7 @@ def scheduler_step(scheduler, avg_val_loss, epoch):
 
 torch.set_float32_matmul_precision('medium')
 #add all of the validation segments into the array to run multiple validation folds
-fragments=['20231210121321']
+fragments=['Frag3']
 for fid in fragments:
     CFG.valid_id=fid
     fragment_id = CFG.valid_id
@@ -393,20 +393,20 @@ for fid in fragments:
                                 shuffle=False,
                                 num_workers=CFG.num_workers, pin_memory=True, drop_last=True)
 
-    wandb_logger = WandbLogger(project="vesivus",name=run_slug+f'timesformer_big6_finetune')
+    wandb_logger = WandbLogger(project="vesuvius-gp-repro",name=run_slug+f'timesformer-rescaled-fragments')
     model=RegressionPLModel(pred_shape=pred_shape,size=CFG.size)
     wandb_logger.watch(model, log="all", log_freq=100)
     trainer = pl.Trainer(
         max_epochs=20,
         accelerator="gpu",
-        devices=4,
+        devices=1,
         logger=wandb_logger,
         default_root_dir="./models",
         accumulate_grad_batches=1,
         precision='16-mixed',
         gradient_clip_val=1.0,
         gradient_clip_algorithm="norm",
-        strategy='ddp_find_unused_parameters_true',
+        #strategy='ddp_find_unused_parameters_true',
         callbacks=[ModelCheckpoint(filename=f'timesformer_wild16_{fid}_fr'+'{epoch}',dirpath=CFG.model_dir,monitor='train/total_loss',mode='min',save_top_k=CFG.epochs),
 
                     ],
