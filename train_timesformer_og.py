@@ -300,7 +300,7 @@ class RegressionPLModel(pl.LightningModule):
         loss1 = self.loss_func(outputs, y)
         if torch.isnan(loss1):
             print("Loss nan encountered")
-        self.log("train/total_loss", loss1.item(),on_step=True, on_epoch=True, prog_bar=True)
+        self.log("train/total_loss", loss1.item(),on_step=True, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss1}
 
     def validation_step(self, batch, batch_idx):
@@ -395,7 +395,7 @@ for fid in fragments:
 
     wandb_logger = WandbLogger(project="vesuvius-gp-repro",name=run_slug+f'timesformer-rescaled-fragments')
     model=RegressionPLModel(pred_shape=pred_shape,size=CFG.size)
-    wandb_logger.watch(model, log="all", log_freq=100)
+    wandb_logger.watch(model, log="all", log_freq=30)
     trainer = pl.Trainer(
         max_epochs=20,
         accelerator="gpu",
