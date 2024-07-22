@@ -156,7 +156,7 @@ def get_train_valid_dataset():
     valid_masks = []
     valid_xyxys = []
   
-    for fragment_id in ['Frag1', 'Frag3']:  
+    for fragment_id in ['Frag1', 'Frag3', 'Frag4']:  
         print('reading ',fragment_id)
         image, mask,fragment_mask = read_image_mask(fragment_id)
         x1_list = list(range(0, image.shape[1]-CFG.tile_size+1, CFG.stride))
@@ -313,7 +313,7 @@ class RegressionPLModel(pl.LightningModule):
             self.mask_pred[y1:y2, x1:x2] += F.interpolate(y_preds[i].unsqueeze(0).float(),scale_factor=16,mode='bilinear').squeeze(0).squeeze(0).numpy()
             self.mask_count[y1:y2, x1:x2] += np.ones((self.hparams.size, self.hparams.size))
 
-        self.log("val/total_loss", loss1.item(),on_step=True, on_epoch=True, prog_bar=True)
+        self.log("val/total_loss", loss1.item(),on_step=True, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss1}
     
     def on_validation_epoch_end(self):
@@ -399,7 +399,7 @@ for fid in fragments:
     trainer = pl.Trainer(
         max_epochs=20,
         accelerator="gpu",
-        devices=1,
+        devices=4,
         logger=wandb_logger,
         default_root_dir="./models",
         accumulate_grad_batches=1,
