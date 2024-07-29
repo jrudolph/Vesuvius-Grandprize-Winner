@@ -53,7 +53,7 @@ class CFG:
     scheduler = 'GradualWarmupSchedulerV2'
     epochs = 30 # 30
     warmup_factor = 10
-    lr = 3e-5
+    lr = 3e-4
     # ============== fold =============
     valid_id = None
     # ============== fixed =============
@@ -156,7 +156,7 @@ def get_train_valid_dataset():
     valid_masks = []
     valid_xyxys = []
   
-    for fragment_id in ['Frag1', 'Frag3', 'Frag4']:  
+    for fragment_id in ['Frag1', 'Frag2', 'Frag3', 'Frag4']:  
         print('reading ',fragment_id)
         image, mask,fragment_mask = read_image_mask(fragment_id)
         x1_list = list(range(0, image.shape[1]-CFG.tile_size+1, CFG.stride))
@@ -367,7 +367,7 @@ def scheduler_step(scheduler, avg_val_loss, epoch):
 
 torch.set_float32_matmul_precision('medium')
 #add all of the validation segments into the array to run multiple validation folds
-fragments=['Frag3']
+fragments=['Frag1']
 for fid in fragments:
     CFG.valid_id=fid
     fragment_id = CFG.valid_id
@@ -399,7 +399,7 @@ for fid in fragments:
     trainer = pl.Trainer(
         max_epochs=20,
         accelerator="gpu",
-        devices=4,
+        devices=1,
         logger=wandb_logger,
         default_root_dir="./models",
         accumulate_grad_batches=1,
