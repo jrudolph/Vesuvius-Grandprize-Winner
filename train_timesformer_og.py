@@ -53,7 +53,7 @@ class CFG:
     scheduler = 'GradualWarmupSchedulerV2'
     epochs = 30 # 30
     warmup_factor = 10
-    lr = 3e-4
+    lr = 3e-5
     # ============== fold =============
     valid_id = None
     # ============== fixed =============
@@ -369,6 +369,8 @@ torch.set_float32_matmul_precision('medium')
 #add all of the validation segments into the array to run multiple validation folds
 fragments=['Frag1']
 for fid in fragments:
+    # model = RegressionPLModel.load_from_checkpoint("outputs/vesuvius/pretraining_all/vesuvius-models/timesformer_wild16_Frag1_frepoch=2.ckpt")
+    model = RegressionPLModel.load_from_checkpoint("grand-prize-model.ckpt")
     CFG.valid_id=fid
     fragment_id = CFG.valid_id
     run_slug=f'training_scrolls_valid={fragment_id}_{CFG.size}x{CFG.size}_submissionlabels'
@@ -394,8 +396,9 @@ for fid in fragments:
                                 num_workers=CFG.num_workers, pin_memory=True, drop_last=True)
 
     wandb_logger = WandbLogger(project="vesuvius-gp-repro",name=run_slug+f'timesformer-rescaled-fragments')
-    model=RegressionPLModel(pred_shape=pred_shape,size=CFG.size)
-    wandb_logger.watch(model, log="all", log_freq=30)
+    #model=RegressionPLModel(pred_shape=pred_shape,size=CFG.size)
+    
+    wandb_logger.watch(model, log="all", log_freq=50)
     trainer = pl.Trainer(
         max_epochs=20,
         accelerator="gpu",
