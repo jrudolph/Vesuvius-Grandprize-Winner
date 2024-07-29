@@ -399,7 +399,7 @@ for fid in fragments:
     trainer = pl.Trainer(
         max_epochs=20,
         accelerator="gpu",
-        devices=1,
+        devices=-1,
         logger=wandb_logger,
         default_root_dir="./models",
         accumulate_grad_batches=1,

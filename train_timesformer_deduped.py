@@ -45,7 +45,7 @@ from torch.utils.data import DataLoader, Dataset
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import DataLoader, Dataset
-from i3dallnl import InceptionI3d
+#from i3dallnl import InceptionI3d
 import torch.nn as nn
 import torch
 from warmup_scheduler import GradualWarmupScheduler
@@ -79,7 +79,7 @@ class CFG:
     tile_size = 256
     stride = tile_size // 8
 
-    train_batch_size = 256 # 32
+    train_batch_size = 160 # 32
     valid_batch_size = train_batch_size
     use_amp = True
 
@@ -90,10 +90,10 @@ class CFG:
     # adamW warmupあり
     warmup_factor = 10
     # lr = 1e-4 / warmup_factor
-    # lr = 1e-4 / warmup_factor
-    lr = 6e-5
+    lr = 1e-4 / warmup_factor
+    #lr = 6e-5
     # ============== fold =============
-    valid_id = '20230820203112'
+    valid_id = 'Frag1'
 
     # objective_cv = 'binary'  # 'binary', 'multiclass', 'regression'
     metric_direction = 'maximize'  # maximize, 'minimize'
@@ -214,7 +214,7 @@ def read_image_mask(fragment_id,start_idx=17,end_idx=43):
 
     for i in idxs:
         
-        image = cv2.imread(CFG.comp_dataset_path + f"train_scrolls/{fragment_id}/layers/{i:02}.tif", 0)
+        image = cv2.imread(CFG.comp_dataset_path + f"train_scrolls/{fragment_id}/layers/{i:02}.png", 0)
 
         pad0 = (CFG.tile_size - image.shape[0] % CFG.tile_size)
         pad1 = (CFG.tile_size - image.shape[1] % CFG.tile_size)
@@ -262,9 +262,9 @@ def get_train_valid_dataset():
     valid_xyxys = []
     # for fragment_id in ['20231005123333','20230820203112','20230620230619','20230530164535','20230826170124','20231012085431','20230702185753','20230620230617','20230522215721','20230701020044','20230901184804','20230531193658','20230520175435','20230903193206','20230902141231','20231007101615','20230929220924','recto','verso','20231022170900','20231012173610','20231016151000','20231012184420']:
 #BIG 6:'20231005123333','20231022170900','20231012173610','20230702185753','20230929220924','20231007101615'
-    for fragment_id in ['20231210121321','20231106155350','20231005123336','20230820203112','20230620230619','20230826170124','20230702185753','20230522215721','20230531193658','20230520175435','20230903193206','20230902141231','20231007101615','20230929220924','recto','verso','20231016151000','20231012184423','20231031143850']:  
+    #for fragment_id in ['20231210121321','20231106155350','20231005123336','20230820203112','20230620230619','20230826170124','20230702185753','20230522215721','20230531193658','20230520175435','20230903193206','20230902141231','20231007101615','20230929220924','recto','verso','20231016151000','20231012184423','20231031143850']:  
 #,
-        
+    for fragment_id in ['Frag1', 'Frag2', 'Frag3', 'Frag4']:          
     # for fragment_id in ['20231210121321','20231106155350']:
         print('reading ',fragment_id)
         image, mask,fragment_mask = read_image_mask(fragment_id)
@@ -487,7 +487,7 @@ class RegressionPLModel(pl.LightningModule):
         loss1 = self.loss_func(outputs, y)
         if torch.isnan(loss1):
             print("Loss nan encountered")
-        self.log("train/total_loss", loss1.item(),on_step=True, on_epoch=True, prog_bar=True)
+        self.log("train/total_loss", loss1.item(),on_step=True, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss1}
 
     def validation_step(self, batch, batch_idx):
@@ -500,7 +500,7 @@ class RegressionPLModel(pl.LightningModule):
             self.mask_pred[y1:y2, x1:x2] += F.interpolate(y_preds[i].unsqueeze(0).float(),scale_factor=16,mode='bilinear').squeeze(0).squeeze(0).numpy()
             self.mask_count[y1:y2, x1:x2] += np.ones((self.hparams.size, self.hparams.size))
 
-        self.log("val/total_loss", loss1.item(),on_step=True, on_epoch=True, prog_bar=True)
+        self.log("val/total_loss", loss1.item(),on_step=True, on_epoch=True, prog_bar=True, sync_dist=True)
         return {"loss": loss1}
     
     def on_validation_epoch_end(self):
@@ -563,7 +563,7 @@ valid_mask_gt = cv2.imread(CFG.comp_dataset_path + f"train_scrolls/{fragment_id}
 pred_shape=valid_mask_gt.shape
 torch.set_float32_matmul_precision('medium')
 
-fragments=['20231005123336']
+fragments=['Frag1']
 enc_i,enc,fold=0,'i3d',0
 for fid in fragments:
     CFG.valid_id=fid
@@ -590,7 +590,7 @@ for fid in fragments:
                                 shuffle=False,
                                 num_workers=CFG.num_workers, pin_memory=True, drop_last=True)
 
-    wandb_logger = WandbLogger(project="vesivus",name=run_slug+f'timesformer_big6_finetune')
+    wandb_logger = WandbLogger(project="vesuvius-gp-repro",name=run_slug+f'deduped')
     norm=fold==1
     model=RegressionPLModel(enc='i3d',pred_shape=pred_shape,size=CFG.size,total_steps=len(train_loader))
 
@@ -602,7 +602,7 @@ for fid in fragments:
         # check_val_every_n_epoch=10,
         max_epochs=150,
         accelerator="gpu",
-        devices=8,
+        devices=-1,
         logger=wandb_logger,
         default_root_dir="./models",
         accumulate_grad_batches=1,
