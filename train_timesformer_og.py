@@ -156,7 +156,7 @@ def get_train_valid_dataset():
     valid_masks = []
     valid_xyxys = []
   
-    for fragment_id in ['Frag1', 'Frag2', 'Frag3', 'Frag4']:  
+    for fragment_id in ['Frag1-top', 'Frag1-bottom', 'Frag2', 'Frag3', 'Frag4']:  
         print('reading ',fragment_id)
         image, mask,fragment_mask = read_image_mask(fragment_id)
         x1_list = list(range(0, image.shape[1]-CFG.tile_size+1, CFG.stride))
@@ -367,7 +367,7 @@ def scheduler_step(scheduler, avg_val_loss, epoch):
 
 torch.set_float32_matmul_precision('medium')
 #add all of the validation segments into the array to run multiple validation folds
-fragments=['Frag1']
+fragments=['Frag1-top']
 for fid in fragments:
     # model = RegressionPLModel.load_from_checkpoint("outputs/vesuvius/pretraining_all/vesuvius-models/timesformer_wild16_Frag1_frepoch=2.ckpt")
     model = RegressionPLModel.load_from_checkpoint("grand-prize-model.ckpt")
