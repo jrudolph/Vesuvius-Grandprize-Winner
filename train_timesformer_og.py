@@ -366,8 +366,9 @@ def scheduler_step(scheduler, avg_val_loss, epoch):
     scheduler.step(epoch)
 
 torch.set_float32_matmul_precision('medium')
+wandb.require("core")
 #add all of the validation segments into the array to run multiple validation folds
-fragments=['Frag1-top']
+fragments=['Frag1-bottom']
 for fid in fragments:
     # model = RegressionPLModel.load_from_checkpoint("outputs/vesuvius/pretraining_all/vesuvius-models/timesformer_wild16_Frag1_frepoch=2.ckpt")
     model = RegressionPLModel.load_from_checkpoint("grand-prize-model.ckpt")
@@ -397,8 +398,28 @@ for fid in fragments:
 
     wandb_logger = WandbLogger(project="vesuvius-gp-repro",name=run_slug+f'timesformer-rescaled-fragments')
     #model=RegressionPLModel(pred_shape=pred_shape,size=CFG.size)
-    
-    wandb_logger.watch(model, log="all", log_freq=50)
+    model.hparams.pred_shape = pred_shape
+    model.mask_pred = np.zeros(pred_shape)
+    model.mask_count = np.zeros(pred_shape)
+
+    wandb_logger.watch(model, log="all", log_freq=100)
+    callbacks = [
+        ModelCheckpoint(
+            filename=f'timesformer_valid_{fid}'+'_step_{step}_by_train_loss_{train/total_loss_step:.3f}',
+            dirpath=CFG.model_dir,
+            monitor='train/total_loss_step',
+            every_n_train_steps=100,
+            mode='min',
+            auto_insert_metric_name=False,
+            save_top_k=3),
+        ModelCheckpoint(
+            filename=f'timesformer_valid_{fid}'+'_step_{step}_epoch_{epoch}_by_valid_loss_{val/total_loss:.3f}',
+            dirpath=CFG.model_dir,
+            monitor='val/total_loss',
+            mode='min',
+            auto_insert_metric_name=False,
+            save_top_k=3),
+    ]
     trainer = pl.Trainer(
         max_epochs=20,
         accelerator="gpu",
@@ -410,9 +431,7 @@ for fid in fragments:
         gradient_clip_val=1.0,
         gradient_clip_algorithm="norm",
         #strategy='ddp_find_unused_parameters_true',
-        callbacks=[ModelCheckpoint(filename=f'timesformer_wild16_{fid}_fr'+'{epoch}',dirpath=CFG.model_dir,monitor='train/total_loss',mode='min',save_top_k=CFG.epochs),
-
-                    ],
+        callbacks=callbacks
 
     )
     trainer.fit(model=model, train_dataloaders=train_loader, val_dataloaders=valid_loader)
